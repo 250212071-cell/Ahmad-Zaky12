@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Saudara Dekat - Platform manajemen bengkel online terpercaya. Cari, bandingkan, dan booking bengkel mobil & motor terdekat.">
+    <meta name="keywords" content="bengkel, workshop, servis kendaraan, booking bengkel, bengkel terdekat">
+    <meta name="author" content="Saudara Dekat">
+    <title>Saudara Dekat — Online Workshop Management Platform</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/globals.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/pages.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/responsive.css">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+</head>
+<body>
+    <div id="app" class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo" onclick="navigateTo('beranda')">
+                    <div class="logo-icon">SD</div>
+                    <span class="logo-text">Saudara Dekat</span>
+                </div>
+                <button class="sidebar-close" id="sidebarClose" onclick="toggleSidebar()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a class="nav-item active" data-page="beranda" onclick="navigateTo('beranda')">
+                    <i data-lucide="home"></i>
+                    <span>Beranda</span>
+                </a>
+                <a class="nav-item" data-page="cari-bengkel" onclick="navigateTo('cari-bengkel')">
+                    <i data-lucide="search"></i>
+                    <span>Cari Bengkel</span>
+                </a>
+                <a class="nav-item" data-page="kategori" onclick="navigateTo('kategori')">
+                    <i data-lucide="grid-3x3"></i>
+                    <span>Kategori</span>
+                </a>
+                <a class="nav-item" data-page="booking" onclick="navigateTo('booking')">
+                    <i data-lucide="calendar-check"></i>
+                    <span>Booking</span>
+                </a>
+                <a class="nav-item" data-page="ulasan" onclick="navigateTo('ulasan')">
+                    <i data-lucide="star"></i>
+                    <span>Ulasan</span>
+                </a>
+                <a class="nav-item" data-page="akun" onclick="navigateTo('akun')">
+                    <i data-lucide="user"></i>
+                    <span>Akun Saya</span>
+                </a>
+                <div class="nav-divider"></div>
+                <a class="nav-item" data-page="dashboard-owner" onclick="navigateTo('dashboard-owner')">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard Pemilik</span>
+                </a>
+                <a class="nav-item" data-page="dashboard-admin" onclick="navigateTo('dashboard-admin')">
+                    <i data-lucide="shield-check"></i>
+                    <span>Admin Panel</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-mini-profile" onclick="navigateTo('akun')">
+                    <div class="user-avatar-sm">AZ</div>
+                    <div class="user-info-sm">
+                        <span class="user-name-sm">Ahmad Zaky</span>
+                        <span class="user-role-sm">Customer</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <h2 class="page-title" id="pageTitle">Selamat Datang, rakan!</h2>
+                </div>
+                <div class="header-right">
+                    <div class="header-search">
+                        <i data-lucide="search" class="search-icon"></i>
+                        <input type="text" placeholder="Cari bengkel..." id="globalSearch" onkeyup="handleGlobalSearch(event)">
+                    </div>
+                    <button class="header-btn notification-btn" onclick="toggleNotifications()">
+                        <i data-lucide="bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <div class="header-user" onclick="navigateTo('akun')">
+                        <div class="user-avatar-header">AZ</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Notification Dropdown -->
+            <div class="notification-dropdown" id="notificationDropdown">
+                <div class="notif-header">
+                    <h3>Notifikasi</h3>
+                    <button onclick="markAllRead()">Tandai semua dibaca</button>
+                </div>
+                <div class="notif-list">
+                    <div class="notif-item unread">
+                        <div class="notif-icon green"><i data-lucide="check-circle"></i></div>
+                        <div class="notif-content">
+                            <p>Booking Anda di <strong>Bengkel Pion Jaya</strong> telah dikonfirmasi</p>
+                            <span>2 jam lalu</span>
+                        </div>
+                    </div>
+                    <div class="notif-item unread">
+                        <div class="notif-icon blue"><i data-lucide="wrench"></i></div>
+                        <div class="notif-content">
+                            <p>Servis kendaraan Anda sedang <strong>dalam proses</strong></p>
+                            <span>5 jam lalu</span>
+                        </div>
+                    </div>
+                    <div class="notif-item unread">
+                        <div class="notif-icon orange"><i data-lucide="star"></i></div>
+                        <div class="notif-content">
+                            <p>Berikan ulasan untuk <strong>Saudara Gata</strong></p>
+                            <span>1 hari lalu</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page Content Container -->
+            <div class="page-content" id="pageContent">
+                <!-- Pages will be rendered here dynamically -->
+            </div>
+
+            <!-- Footer -->
+            <footer class="page-footer">
+                © 2026 Saudara Dekat.
+            </footer>
+        </main>
+
+        <!-- Mobile Bottom Navigation -->
+        <nav class="mobile-nav">
+            <a class="mobile-nav-item active" data-page="beranda" onclick="navigateTo('beranda')">
+                <i data-lucide="home"></i>
+                <span>Beranda</span>
+            </a>
+            <a class="mobile-nav-item" data-page="cari-bengkel" onclick="navigateTo('cari-bengkel')">
+                <i data-lucide="search"></i>
+                <span>Cari</span>
+            </a>
+            <a class="mobile-nav-item" data-page="booking" onclick="navigateTo('booking')">
+                <i data-lucide="calendar-check"></i>
+                <span>Booking</span>
+            </a>
+            <a class="mobile-nav-item" data-page="ulasan" onclick="navigateTo('ulasan')">
+                <i data-lucide="star"></i>
+                <span>Ulasan</span>
+            </a>
+            <a class="mobile-nav-item" data-page="akun" onclick="navigateTo('akun')">
+                <i data-lucide="user"></i>
+                <span>Akun</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+        <div class="modal-container" id="modalContainer" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modalTitle">Detail</h3>
+                <button class="modal-close" onclick="closeModal()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer" id="modalFooter"></div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/pages.js"></script>
+    <script src="js/dashboards.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

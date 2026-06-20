@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hand Particle Control</title>
+
+<style>
+body {
+  margin: 0;
+  overflow: hidden;
+  background: black;
+}
+video {
+  display: none;
+}
+canvas {
+  display: block;
+}
+</style>
+</head>
+
+<body>
+
+<video id="video" autoplay playsinline></video>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script type="module">
+
+import * as THREE from 'https://unpkg.com/three@0.166.1/build/three.module.js';
+
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+camera.position.z = 50;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+
+// =================
+// PARTIKEL BASE
+// =================
+
+const count = 3000;
+const radius = 15;
+
+const sphere = [];
+const text = [];
+
+// Isi koordinat bola awal
+for (let i = 0; i < count; i++) {
+  const theta = Math.random() * Math.PI * 2;
+  const phi = Math.acos(2 * Math.random() - 1);
+
+  const x = radius * Math.sin(phi) * Math.cos(theta);
+  const y = radius * Math.sin(phi) * Math.sin(theta);
+  const z = radius * Math.cos(phi);
+
+  sphere.push(x, y, z);
+  
+  // Inisialisasi awal array teks di titik 0,0,0 agar partikel sisa tidak berantakan
+  text.push(0, 0, 0);
+}
+
+
+// =================
+// BUAT TEKS MATRIKS
+// =================
+
+const tempCanvas = document.createElement("canvas");
+tempCanvas.width = 1000;
+tempCanvas.height = 300;
+const ctx = tempCanvas.getContext("2d");
+
+ctx.fillStyle = "white";
+ctx.font = "bold 140px Arial"; // Sedikit diperbesar agar lebih proporsional
+ctx.textAlign = "center";
+ctx.textBaseline = "middle";
+ctx.fillText("I LOVE U", 500, 150);
+
+const data = ctx.getImageData(0, 0, 1000, 300).data;
+let index = 0;
+
+// Scan pixel canvas untuk mengambil posisi teks
+for (let y = 0; y < 300; y += 4) { // Step diubah ke 4 agar persebaran partikel lebih efisien
+  for (let x = 0; x < 1000; x += 4) {
+    let pixel = (y * 1000 + x) * 4;
+
+    if (data[pixel + 3] > 0) { // Jika pixel tidak transparan
+      if (index < count) {
+        // Mengubah koordinat 2D canvas menjadi 3D space Three.js
+        text[index * 3] = (x - 500) / 15;
+        text[index * 3 + 1] = (150 - y) / 15;
+        text[index * 3 + 2] = 0; // Teks dibuat flat/2D di bidang Z
+        index++;
+      }
+    }
+  }
+}
+
+// Jika partikel teks kurang dari 3000, sisa partikel akan membaur di tengah teks
+for (let i = index; i < count; i++) {
+  text[i * 3] = (Math.random() - 0.5) * 10;
+  text[i * 3 + 1] = (Math.random() - 0.5) * 2;
+  text[i * 3 + 2] = (Math.random() - 0.5) * 2;
+}
+
+
+// =================
+// GEOMETRY & MATERIAL
+// =================
+
+const geometry = new THREE.BufferGeometry();
+geometry.setAttribute("position", new THREE.Float32BufferAttribute(sphere, 3));
+
+const material = new THREE.PointsMaterial({
+  size: 0.4,
+  transparent: true,
+  opacity: 0.8
+});
+
+const particles = new THREE.Points(geometry, material);
+scene.add(particles);
+
+
+// =================
+// HAND STATE
+// =================
+
+let isFist = true;
+
+
+// =================
+// ANIMASI
+// =================
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  // Jika tangan mengepal (isFist = true), putar bola partikelnya
+  // Jika tangan terbuka, reset rotasi agar teks menghadap depan dan tegak
+  if (isFist) {
+    particles.rotation.y += 0.01;
+    particles.rotation.x += 0.002;
+  } else {
+    // Lerp rotasi kembali ke 0 agar transisinya halus
+    particles.rotation.y += (0 - particles.rotation.y) * 0.1;
+    particles.rotation.x += (0 - particles.rotation.x) * 0.1;
+  }
+
+  const pos = geometry.attributes.position.array;
+  const target = isFist ? sphere : text;
+
+  // Nilai lerp (0.08) menentukan kelembutan transisi perubahan bentuk
+  for (let i = 0; i < count * 3; i++) {
+    pos[i] += (target[i] - pos[i]) * 0.08;
+  }
+
+  geometry.attributes.position.needsUpdate = true;
+
+  // Efek warna pelangi/neon
+  const hue = (Date.now() * 0.0002) % 1;
+  material.color.setHSL(hue, 1, 0.5);
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+
+// =================
+// MEDIAPIPE DETECTOR
+// =================
+
+const video = document.getElementById("video");
+
+const hands = new Hands({
+  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+});
+
+hands.setOptions({
+  maxNumHands: 1,
+  modelComplexity: 1,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7
+});
+
+hands.onResults((results) => {
+  if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+    let hand = results.multiHandLandmarks[0];
+    let tips = [8, 12, 16, 20];
+    let closed = 0;
+
+    for (let tip of tips) {
+      // Membaca koordinat Y, jika ujung jari lebih rendah dari sendi di bawahnya = jari menekuk
+      if (hand[tip].y > hand[tip - 2].y) {
+        closed++;
+      }
+    }
+
+    // Jika 3 atau lebih jari menekuk, dianggap mengepal (Fist) -> Bentuk Bola
+    // Jika tangan terbuka, isFist = false -> Bentuk Teks
+    isFist = (closed >= 3);
+  } else {
+    // Default jika tangan tidak terdeteksi di kamera
+    isFist = true;
+  }
+});
+
+const cam = new Camera(video, {
+  onFrame: async () => {
+    await hands.send({ image: video });
+  },
+  width: 640,
+  height: 480
+});
+
+cam.start();
+
+
+// =================
+// RESPONSIVE SCREEN
+// =================
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+</script>
+
+</body>
+</html>
